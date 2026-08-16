@@ -4,6 +4,10 @@
 
 local opt = vim.opt
 
+-- Use Telescope as the picker backend; it remains compatible with mini.starter.
+vim.g.lazyvim_picker = "telescope"
+vim.g.lazyvim_explorer = "neo-tree"
+
 -- vim.g.mapleader = " "
 
 opt.relativenumber = false

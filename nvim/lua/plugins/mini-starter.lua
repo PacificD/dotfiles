@@ -1,9 +1,10 @@
 return {
   {
-    "echasnovski/mini.starter",
-    version = false, -- wait till new 0.7.0 release to put it back on semver
+    "nvim-mini/mini.starter",
+    version = false,
     event = "VimEnter",
-    opts = function()
+    opts = { items = {} },
+    config = function(_, opts)
       local logo = table.concat({
         "██████╗░░█████╗░░█████╗░██╗███████╗██╗░█████╗░██████╗░",
         "██╔══██╗██╔══██╗██╔══██╗██║██╔════╝██║██╔══██╗██╔══██╗",
@@ -11,43 +12,29 @@ return {
         "██╔═══╝░██╔══██║██║░░██╗██║██╔══╝░░██║██║░░██╗██║░░██║",
         "██║░░░░░██║░░██║╚█████╔╝██║██║░░░░░██║╚█████╔╝██████╔╝",
       }, "\n")
-      -- local logo = table.concat({
-      --   "            ██╗      █████╗ ███████╗██╗   ██╗██╗   ██╗██╗███╗   ███╗          Z",
-      --   "            ██║     ██╔══██╗╚══███╔╝╚██╗ ██╔╝██║   ██║██║████╗ ████║      Z    ",
-      --   "            ██║     ███████║  ███╔╝  ╚████╔╝ ██║   ██║██║██╔████╔██║   z       ",
-      --   "            ██║     ██╔══██║ ███╔╝    ╚██╔╝  ╚██╗ ██╔╝██║██║╚██╔╝██║ z         ",
-      --   "            ███████╗██║  ██║███████╗   ██║    ╚████╔╝ ██║██║ ╚═╝ ██║           ",
-      --   "            ╚══════╝╚═╝  ╚═╝╚══════╝   ╚═╝     ╚═══╝  ╚═╝╚═╝     ╚═╝           ",
-      -- }, "\n")
       local pad = string.rep(" ", 22)
       local new_section = function(name, action, section)
         return { name = name, action = action, section = pad .. section }
       end
-
       local starter = require("mini.starter")
-      --stylua: ignore
-      local config = {
-        evaluate_single = true,
-        header = logo,
-        items = {
-          new_section("Find file", "Telescope find_files", "Telescope"),
-          new_section("Recent files", "Telescope oldfiles", "Telescope"),
-          new_section("Grep text", "Telescope live_grep", "Telescope"),
-          new_section("init.lua", "e $MYVIMRC", "Config"),
-          new_section("Lazy", "Lazy", "Config"),
-          new_section("New file", "ene | startinsert", "Built-in"),
-          new_section("Quit", "qa", "Built-in"),
-          new_section("Session restore", [[lua require("persistence").load()]], "Session"),
-        },
-        content_hooks = {
-          starter.gen_hook.adding_bullet(pad .. "░ ", false),
-          starter.gen_hook.aligning("center", "center"),
-        },
+
+      opts.evaluate_single = true
+      opts.header = logo
+      opts.items = {
+        new_section("Find file", LazyVim.pick(), "Telescope"),
+        new_section("Recent files", LazyVim.pick("oldfiles"), "Telescope"),
+        new_section("Grep text", LazyVim.pick("live_grep"), "Telescope"),
+        new_section("init.lua", "e $MYVIMRC", "Config"),
+        new_section("Lazy", "Lazy", "Config"),
+        new_section("New file", "ene | startinsert", "Built-in"),
+        new_section("Quit", "qa", "Built-in"),
+        new_section("Session restore", [[lua require("persistence").load()]], "Session"),
       }
-      return config
-    end,
-    config = function(_, config)
-      -- close Lazy and re-open when starter is ready
+      opts.content_hooks = {
+        starter.gen_hook.adding_bullet(pad .. "░ ", false),
+        starter.gen_hook.aligning("center", "center"),
+      }
+
       if vim.o.filetype == "lazy" then
         vim.cmd.close()
         vim.api.nvim_create_autocmd("User", {
@@ -58,17 +45,22 @@ return {
         })
       end
 
-      local starter = require("mini.starter")
-      starter.setup(config)
+      starter.setup(opts)
 
       vim.api.nvim_create_autocmd("User", {
         pattern = "LazyVimStarted",
-        callback = function()
+        callback = function(ev)
           local stats = require("lazy").stats()
-          local ms = (math.floor(stats.startuptime * 100 + 0.5) / 100)
-          local pad_footer = string.rep(" ", 8)
-          starter.config.footer = pad_footer .. "⚡ Neovim loaded " .. stats.count .. " plugins in " .. ms .. "ms"
-          pcall(starter.refresh)
+          local ms = math.floor(stats.startuptime * 100 + 0.5) / 100
+          starter.config.footer = string.rep(" ", 8)
+            .. "⚡ Neovim loaded "
+            .. stats.count
+            .. " plugins in "
+            .. ms
+            .. "ms"
+          if vim.bo[ev.buf].filetype == "ministarter" then
+            pcall(starter.refresh)
+          end
         end,
       })
     end,
